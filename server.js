@@ -14,7 +14,14 @@ require("dotenv").config();
 const router = express.Router();
 
 // Enable CORS
-app.use(cors());
+
+const corsOptions = {
+  origin: 'https://tank-h15o.vercel.app', // your frontend URL
+  methods: ['GET', 'POST', 'PUT', 'DELETE'], // Allowed methods
+  allowedHeaders: ['Content-Type', 'Authorization'], // Allowed headers
+};
+
+app.use(cors(corsOptions));
 
 // Middleware to parse JSON body
 app.use(express.json());
