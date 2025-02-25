@@ -91,7 +91,7 @@ router.post("/PostTransaction", async (req, res) => {
       phone_number: phone,
       tx_ref: "chewatatest-" + Date.now(),
       callback_url: "https://webhook.site/077164d6-29cb-40df-ba29-8a00e59a7e60",
-      return_url: `https://tankwas-3.onrender.com/congratulation/${savedBooking._id}`,
+      return_url: `https://tank-h15o.vercel.app//congratulation/${savedBooking._id}`,
       customization: {
         title: "Payment for ",
         description: "I love online payments",
@@ -210,7 +210,7 @@ app.post("/api/blogs", upload.single("image"), async (req, res) => {
     return res.status(400).json({ error: "Image is required" });
   }
 
-  const imageUrl = `https://tankwas-3.onrender.com/uploads/${req.file.filename}`;
+  const imageUrl = `https://tank-h15o.vercel.app//uploads/${req.file.filename}`;
 
   try {
     const newBlog = new Blog({ title, description, imageUrl });
