@@ -4,17 +4,27 @@ const axios = require("axios"); // Use axios for HTTP requests
 const mongoose = require("mongoose");
 const Booking = require("./models/bookingSchema.js");
 const Blog = require("./models/Blog"); 
+const User = require("./models/User"); 
 const multer = require("multer");
 const path = require("path");
 const Sponsor = require('./models/Sponser.js');
 const BoatOwner = require('./models/BoatOwner.js')
 const Promocode = require('./models/promoCode.js')
+const bcrypt = require('bcryptjs'); 
 const app = express();
+const jwt = require('jsonwebtoken'); // For token generation
 require("dotenv").config();
 const router = express.Router();
 
 // Enable CORS
-app.use(cors());
+
+const corsOptions = {
+  origin: ['https://tank-h15o.vercel.app', 'http://localhost:3000'], // Allowed origins
+  methods: ['GET', 'POST', 'PUT', 'DELETE'], // Allowed methods
+  allowedHeaders: ['Content-Type', 'Authorization'], // Allowed headers
+};
+
+app.use(cors(corsOptions));
 
 // Middleware to parse JSON body
 app.use(express.json());
@@ -31,6 +41,7 @@ mongoose.connect(uri, {
   .catch(err => console.error("MongoDB connection error:", err));
 
   //post
+  router.post
 router.post("/PostTransaction", async (req, res) => {
   console.log(req.body);
   try {
@@ -84,7 +95,7 @@ router.post("/PostTransaction", async (req, res) => {
       phone_number: phone,
       tx_ref: "chewatatest-" + Date.now(),
       callback_url: "https://webhook.site/077164d6-29cb-40df-ba29-8a00e59a7e60",
-      return_url: `http://localhost:3000/congratulation/${savedBooking._id}`,
+      return_url: `https://tank-h15o.vercel.app//congratulation/${savedBooking._id}`,
       customization: {
         title: "Payment for ",
         description: "I love online payments",
@@ -125,6 +136,70 @@ router.post("/PostTransaction", async (req, res) => {
   } catch (error) {
     console.log("Error handling payment:", error);
     res.status(500).json({ error: error.message });
+  }
+});
+// Signup Route
+
+router.post('/signup', async (req, res) => {
+  const { email, password } = req.body;
+
+  try {
+    // Check if the user already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ message: 'User already exists' });
+    }
+
+    // Hash the password
+    const salt = await bcrypt.genSalt(10); // Generate a salt
+    const hashedPassword = await bcrypt.hash(password, salt); // Hash the password
+
+    // Create a new user with the hashed password
+    const newUser = new User({
+      email,
+      password: hashedPassword,
+    });
+
+    // Save the user to the database
+    await newUser.save();
+
+    // Generate a JWT token
+    const token = jwt.sign(
+      { userId: newUser._id, email: newUser.email }, // Payload
+      process.env.JWT_SECRET, // Secret key (store in environment variables)
+      { expiresIn: '1h' } // Token expiration time
+    );
+
+    // Respond with success and the token
+    res.status(201).json({ message: 'User created successfully', user: newUser, token });
+  } catch (error) {
+    console.error('Error creating user:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Login Route
+router.post('/login', async (req, res) => {
+  const { email, password } = req.body;
+
+  try {
+    // Find the user by email
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid credentials' });
+    }
+
+    // Compare the provided password with the hashed password in the database
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: 'Invalid credentials' });
+    }
+
+    // If everything is correct, return a success response
+    res.status(200).json({ message: 'Login successful', user });
+  } catch (error) {
+    console.error('Error during login:', error);
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
@@ -203,7 +278,7 @@ app.post("/api/blogs", upload.single("image"), async (req, res) => {
     return res.status(400).json({ error: "Image is required" });
   }
 
-  const imageUrl = `http://localhost:5000/uploads/${req.file.filename}`;
+  const imageUrl = `https://tank-h15o.vercel.app//uploads/${req.file.filename}`;
 
   try {
     const newBlog = new Blog({ title, description, imageUrl });
