@@ -12,16 +12,26 @@ const BoatOwner = require('./models/BoatOwner.js')
 const Promocode = require('./models/promoCode.js')
 const bcrypt = require('bcryptjs'); 
 const app = express();
+const cloudinary = require('cloudinary').v2;
 const jwt = require('jsonwebtoken'); // For token generation
 require("dotenv").config();
 const router = express.Router();
-
 // Enable CORS
 const corsOptions = {
   origin: 'https://tank-h15o.vercel.app', // Allow requests from localhost (React default port)
   methods: ['GET', 'POST', 'PUT', 'DELETE'], // Allowed methods
   allowedHeaders: ['Content-Type', 'Authorization'], // Allowed headers
 };
+
+
+cloudinary.config({ 
+  cloud_name: 'drpuygxkj', 
+  api_key: '862122525455791', 
+  api_secret: '7c5LGGeCw9tSMEkQK4oqu4bbd2A' // Click 'View API Keys' above to copy your API secret
+});
+
+
+
 
 app.use(cors(corsOptions));
 
@@ -295,7 +305,17 @@ app.post("/api/blogs", upload.single("image"), async (req, res) => {
   }
 
   const imageUrl = `https://tank-h15o.vercel.app//uploads/${req.file.filename}`;
+  const uploadResult = await cloudinary.uploader
+  .upload(
+     imageUrl, {
+          public_id: 'blog',
+      }
+  )
+  .catch((error) => {
+      console.log(error);
+  });
 
+console.log(uploadResult);
   try {
     const newBlog = new Blog({ title, description, imageUrl });
     await newBlog.save();
@@ -473,11 +493,21 @@ router.get('/sponser', async (req, res) => {
 router.post('/sponser', uploads.single('logo'), async (req, res) => {
   const { name, url, description, twitter, facebook, instagram } = req.body;
   const logo = req.file ? `/uploads/${req.file.filename}` : '';
+  const uploadResult = await cloudinary.uploader
+  .upload(
+url, {
+          public_id: 'shoes',
+      }
+  )
+  .catch((error) => {
+      console.log(error);
+  });
 
+console.log(uploadResult);
   try {
     const newSponsor = new Sponsor({
       name,
-      logo,
+      uploadResult,
       url,
       description,
       twitter,
