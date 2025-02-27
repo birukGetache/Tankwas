@@ -10,6 +10,7 @@ const path = require("path");
 const Sponsor = require('./models/Sponser.js');
 const BoatOwner = require('./models/BoatOwner.js')
 const Promocode = require('./models/promoCode.js')
+const Destination = require("./models/Destination.js")
 const bcrypt = require('bcryptjs'); 
 const app = express();
 const cloudinary = require('cloudinary').v2;
