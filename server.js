@@ -461,7 +461,7 @@ router.delete('/boatowners/:id', async (req, res) => {
 });
 
 // Configure multer for file uploads
-const storages = multer.diskStorage({
+const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, 'uploads/'); // Directory to save uploaded images
   },
@@ -470,8 +470,8 @@ const storages = multer.diskStorage({
   },
 });
 
-const uploads = multer({
-  storage: storages,
+const upload = multer({
+  storage: storage,
   fileFilter: (req, file, cb) => {
     const fileTypes = /jpeg|jpg|png|gif/;
     const extname = fileTypes.test(path.extname(file.originalname).toLowerCase());
@@ -495,38 +495,35 @@ router.get('/sponser', async (req, res) => {
 });
 
 // Add a new sponsor with image upload
-router.post('/sponser', uploads.single('logo'), async (req, res) => {
+router.post('/sponser', upload.single('logo'), async (req, res) => {
   const { name, url, description, twitter, facebook, instagram } = req.body;
-  const logo = req.file ? `/uploads/${req.file.filename}` : '';
-  const uploadResult = await cloudinary.uploader
-  .upload(
-url, {
-          public_id: 'shoes',
-      }
-  )
-  .catch((error) => {
-      console.log(error);
-  });
+  const logo = req.file ? req.file.path : '';
 
-console.log(uploadResult);
   try {
+    let uploadResult;
+    if (logo) {
+      uploadResult = await cloudinary.uploader.upload(logo, {
+        folder: 'sponsors', // Optional: specify a folder in Cloudinary
+      });
+    }
+
     const newSponsor = new Sponsor({
       name,
-      uploadResult,
+      logo: uploadResult ? uploadResult.secure_url : '',
       url,
       description,
       twitter,
       facebook,
       instagram,
     });
+
     await newSponsor.save();
     res.status(201).json(newSponsor);
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: 'Failed to create sponsor' });
   }
 });
-
-// Update a sponsor (with optional new image upload)
 router.put('/sponser/:id', upload.single('logo'), async (req, res) => {
   const { id } = req.params;
   const { name, url, description, twitter, facebook, instagram } = req.body;
