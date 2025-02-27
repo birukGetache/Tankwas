@@ -18,7 +18,7 @@ const router = express.Router();
 
 // Enable CORS
 const corsOptions = {
-  origin: 'http://localhost:3000', // Allow requests from localhost (React default port)
+  origin: 'https://tankwas-3.onrender.com', // Allow requests from localhost (React default port)
   methods: ['GET', 'POST', 'PUT', 'DELETE'], // Allowed methods
   allowedHeaders: ['Content-Type', 'Authorization'], // Allowed headers
 };
