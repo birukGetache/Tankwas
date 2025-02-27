@@ -495,21 +495,26 @@ router.get('/sponser', async (req, res) => {
 });
 
 // Add a new sponsor with image upload
-router.post('/sponser', upload.single('logo'), async (req, res) => {
+
+ router.post('/sponser', upload.single('logo'), async (req, res) => {
+  console.log('Request Body:', req.body); // Log the request body
+  console.log('Uploaded File:', req.file); // Log the uploaded file
+
   const { name, url, description, twitter, facebook, instagram } = req.body;
-  const logo = req.file ? req.file.path : '';
 
   try {
     let uploadResult;
-    if (logo) {
-      uploadResult = await cloudinary.uploader.upload(logo, {
+    if (req.file) {
+      console.log('Uploading to Cloudinary...');
+      uploadResult = await cloudinary.uploader.upload(req.file.path, {
         folder: 'sponsors', // Optional: specify a folder in Cloudinary
       });
+      console.log('Cloudinary Upload Result:', uploadResult);
     }
 
     const newSponsor = new Sponsor({
       name,
-      logo: uploadResult ? uploadResult.secure_url : '',
+      logo: uploadResult ? uploadResult.secure_url : '', // Use the Cloudinary URL
       url,
       description,
       twitter,
@@ -517,11 +522,14 @@ router.post('/sponser', upload.single('logo'), async (req, res) => {
       instagram,
     });
 
+    console.log('Saving Sponsor to Database...');
     await newSponsor.save();
+    console.log('Sponsor Saved:', newSponsor);
+
     res.status(201).json(newSponsor);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Failed to create sponsor' });
+    console.error('Error in /sponser route:', err); // Log the full error
+    res.status(500).json({ error: 'Failed to create sponsor', details: err.message });
   }
 });
 router.put('/sponser/:id', upload.single('logo'), async (req, res) => {
