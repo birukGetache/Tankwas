@@ -461,7 +461,7 @@ router.delete('/boatowners/:id', async (req, res) => {
 });
 
 // Configure multer for file uploads
-const storage = multer.diskStorage({
+const storagea = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, 'uploads/'); // Directory to save uploaded images
   },
@@ -470,8 +470,8 @@ const storage = multer.diskStorage({
   },
 });
 
-const upload = multer({
-  storage: storage,
+const uploads = multer({
+  storage: storagea,
   fileFilter: (req, file, cb) => {
     const fileTypes = /jpeg|jpg|png|gif/;
     const extname = fileTypes.test(path.extname(file.originalname).toLowerCase());
@@ -559,6 +559,67 @@ router.delete('/sponser/:id', async (req, res) => {
     res.status(500).json({ error: 'Failed to delete sponsor' });
   }
 });
+
+
+app.post('/upload', uploads.single('image'), async (req, res) => {
+  console.log(req.body);
+  try {
+    const result = await cloudinary.uploader.upload(req.file.path, {
+      folder: 'uploads'
+    });
+
+    const newDestination = await Destination.create({
+      image: result.secure_url,
+      title: req.body.title,
+      description: req.body.description
+    });
+
+    res.status(201).json({
+      title: newDestination.title,
+      description: newDestination.description,
+      imageUrl: newDestination.image
+    });
+  } catch (error) {
+    res.status(500).send(error);
+  }
+});
+
+// Get all l.destinations
+app.get('/destinations', async (req, res) => {
+  try {
+      const destinations = await Destination.find();
+      res.json(destinations);
+  } catch (error) {
+      res.status(500).send(error);
+  }
+});
+
+// Update a destination
+app.put('/destinations/:id', async (req, res) => {
+  try {
+      const destination = await Destination.findByIdAndUpdate(
+          req.params.id,
+          req.body,
+          { new: true }
+      );
+      res.json(destination);
+  } catch (error) {
+      res.status(500).send(error);
+  }
+});
+
+// Delete a destination
+app.delete('/destinations/:id', async (req, res) => {
+  try {
+      await Destination.findByIdAndDelete(req.params.id);
+      res.status(204).send();
+  } catch (error) {
+      res.status(500).send(error);
+  }
+});
+
+
+
 // Use the router
 app.use("/", router);
 
