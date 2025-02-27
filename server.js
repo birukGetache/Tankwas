@@ -20,8 +20,6 @@ const router = express.Router();
 
 const corsOptions = {
 
-  origin: ['https://tank-h15o.vercel.app', 'http://localhost:3000'], // Allowed origins
-
   origin: 'https://tank-h15o.vercel.app', // your frontend URL
 
   methods: ['GET', 'POST', 'PUT', 'DELETE'], // Allowed methods
