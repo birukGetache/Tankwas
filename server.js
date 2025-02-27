@@ -298,29 +298,34 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 // Route to handle blog post
-app.post("/api/blogs", upload.single("image"), async (req, res) => {
+app.post("/api/blogs", upload.single('image'), async (req, res) => {
   const { title, description } = req.body;
+
+  // Check if a file was uploaded
   if (!req.file) {
     return res.status(400).json({ error: "Image is required" });
   }
 
-  const imageUrl = `https://tank-h15o.vercel.app//uploads/${req.file.filename}`;
-  const uploadResult = await cloudinary.uploader
-  .upload(
-     imageUrl, {
-          public_id: 'blog',
-      }
-  )
-  .catch((error) => {
-      console.log(error);
-  });
-
-console.log(uploadResult);
   try {
-    const newBlog = new Blog({ title, description, imageUrl });
+    // Upload the file to Cloudinary
+    const uploadResult = await cloudinary.uploader.upload(req.file.path, {
+      folder: 'blogs', // Optional: Organize images in a folder
+    });
+
+    // Create a new blog post with the Cloudinary image URL
+    const newBlog = new Blog({
+      title,
+      description,
+      imageUrl: uploadResult.secure_url, // Use the secure URL from Cloudinary
+    });
+
+    // Save the blog post to the database
     await newBlog.save();
+
+    // Respond with the created blog post
     res.status(201).json(newBlog);
   } catch (error) {
+    console.error("Error creating blog post:", error);
     res.status(500).json({ error: "Failed to create blog post" });
   }
 });
