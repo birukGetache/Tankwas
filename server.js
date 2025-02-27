@@ -315,6 +315,16 @@ app.get("/api/blogs", async (req, res) => {
   }
 });
 
+// Route to get all blog posts
+app.get("/users", async (req, res) => {
+  try {
+    const blogs = await User.find(); // Fetch all blogs from MongoDB
+    res.json(blogs);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch blogs" });
+  }
+});
+
 // Add a new comment to a blog post
 router.post("/api/blogs/:id/comments", async (req, res) => {
   try {
