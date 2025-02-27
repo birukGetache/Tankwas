@@ -405,6 +405,16 @@ router.get('/boatowners', async (req, res) => {
   }
 });
 
+// Get all boat owners
+router.get('/users', async (req, res) => {
+  try {
+    const userRes = await User.find();
+    res.json(userRes);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // Update boat owner by ID
 router.put('/boatowners/:id', async (req, res) => {
   try {
