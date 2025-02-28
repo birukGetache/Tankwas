@@ -57,24 +57,25 @@ router.post("/PostTransaction", async (req, res) => {
   try {
     // Step 1: Prepare the payment data
     const { promocode, amount, email, firstName, lastName, phone , numberOfPassengers } = req.body;
-
+const numberOfPassengersInt = parseInt(numberOfPassengers, 10);
+    const amountInt = parseInt(amount, 10);
     // Step 2: Validate the promocode if provided
-    let finalAmount = amount;
+    let finalAmount = amountInt;
     if (promocode) {
       const validPromocode = await Promocode.findOne({ code: promocode });
       if(validPromocode){
-      if (numberOfPassengers>5) {
+      if (numberOfPassengersInt>5) {
         
         // Apply a discount of 10 (you can adjust this logic as needed)
-        finalAmount = (amount * numberOfPassengers) - 30;
+        finalAmount = (amountInt * numberOfPassengersInt) - 30;
         // Delete the promocode from the database
         await Promocode.deleteOne({ code: promocode });
       } else {
-        finalAmount = (amount * numberOfPassengers) - 10;
+        finalAmount = (amountInt * numberOfPassengersInt) - 10;
         
       }}
       else{
-        finalAmount = amount*numberOfPassengers;
+        finalAmount = amountInt*numberOfPassengersInt;
       }
     }
 
@@ -87,7 +88,7 @@ router.post("/PostTransaction", async (req, res) => {
     selectedBoatOwner.round += 1;
      }
      else{
-      selectedBoatOwner.size += numberOfPassengers;
+      selectedBoatOwner.size += numberOfPassengersInt;
      }
     await selectedBoatOwner.save();
 
