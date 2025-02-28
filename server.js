@@ -586,12 +586,24 @@ app.post('/upload', uploads.single('image'), async (req, res) => {
 });
 
 // Get all l.destinations
-app.get('/destinations', async (req, res) => {
+app.get('/destinations/:id', async (req, res) => {
   try {
-      const destinations = await Destination.find();
-      res.json(destinations);
+      const id = req.params.id;
+
+      // Check if the ID is a valid MongoDB ObjectId
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+          return res.status(400).send({ message: 'Invalid ID format' });
+      }
+
+      const destination = await Destination.findById(id);
+
+      if (!destination) {
+          return res.status(404).send({ message: 'Destination not found' });
+      }
+
+      res.status(200).send(destination);
   } catch (error) {
-      res.status(500).send(error);
+      res.status(500).send({ message: 'Internal Server Error', error: error.message });
   }
 });
 
