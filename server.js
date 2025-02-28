@@ -585,6 +585,17 @@ app.post('/upload', uploads.single('image'), async (req, res) => {
   }
 });
 
+app.get('/destinations', async (req, res) => {
+  try {
+      const destinations = await Destination.find();
+      res.json(destinations);
+  } catch (error) {
+      res.status(500).send(error);
+  }
+});
+
+
+
 // Get all l.destinations
 app.get('/destinations/:id', async (req, res) => {
   try {
