@@ -51,7 +51,6 @@ mongoose.connect(uri, {
   .catch(err => console.error("MongoDB connection error:", err));
 
   //post
-  router.post
 router.post("/PostTransaction", async (req, res) => {
   console.log(req.body);
   try {
