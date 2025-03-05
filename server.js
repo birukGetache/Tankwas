@@ -1,4 +1,4 @@
-
+require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const axios = require("axios"); // Use axios for HTTP requests
@@ -19,7 +19,7 @@ const bcrypt = require('bcryptjs');
 const app = express();
 const cloudinary = require('cloudinary').v2;
 const jwt = require('jsonwebtoken'); // For token generation
-require("dotenv").config();
+
 const router = express.Router();
 // Enable CORS
 const corsOptions = {
