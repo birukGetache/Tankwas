@@ -798,6 +798,16 @@ app.post('/upload', uploads.single('image'), async (req, res) => {
 });
 
 app.get('/destinations', async (req, res) => {
+  try {
+    const destinations = await Destination.find();
+    res.json(destinations);
+  } catch (error) {
+    res.status(500).send(error);
+  }
+});
+
+
+app.get('/destinations', async (req, res) => {
   const { language } = req.query; // Get the language from query params
 
   try {
