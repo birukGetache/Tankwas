@@ -1,11 +1,15 @@
+
 const express = require("express");
 const cors = require("cors");
 const axios = require("axios"); // Use axios for HTTP requests
 const mongoose = require("mongoose");
 const Booking = require("./models/bookingSchema.js");
 const Blog = require("./models/Blog"); 
+const stripe = require("stripe")(process.env.STRIPE_SECURET_KEY)
 const User = require("./models/User"); 
 const multer = require("multer");
+const TempBooking = require('./models/TempBooking.js')
+const paypal = require("./paypal.js")
 const path = require("path");
 const Sponsor = require('./models/Sponser.js');
 const BoatOwner = require('./models/BoatOwner.js')
@@ -51,103 +55,311 @@ mongoose.connect(uri, {
   .catch(err => console.error("MongoDB connection error:", err));
 
   //post
-router.post("/PostTransaction", async (req, res) => {
-  console.log(req.body);
-  try {
-    // Step 1: Prepare the payment data
-    const { promocode, amount, email, firstName, lastName, phone , numberOfPassengers } = req.body;
-const numberOfPassengersInt = parseInt(numberOfPassengers, 10);
-    const amountInt = parseInt(amount, 10);
-    // Step 2: Validate the promocode if provided
-    let finalAmount = amountInt;
-    if (promocode) {
-      const validPromocode = await Promocode.findOne({ code: promocode });
-      if(validPromocode){
-      if (numberOfPassengersInt>5) {
-        
-        // Apply a discount of 10 (you can adjust this logic as needed)
-        finalAmount = (amountInt * numberOfPassengersInt) - 30;
-        // Delete the promocode from the database
-        await Promocode.deleteOne({ code: promocode });
-      } else {
-        finalAmount = (amountInt * numberOfPassengersInt) - 10;
-        
-      }}
+  router.post("/PostTransaction", async (req, res) => {
+
+    console.log(req.body);
+    if(req.body.paymentMethod === 'Chapa'){
+    try {
+      //paypal for sell 
+     
+      // Step 1: Prepare the payment data
+      const { promocode, amount, email, firstName, lastName, phone , numberOfPassengers } = req.body;
+  const numberOfPassengersInt = parseInt(numberOfPassengers, 10);
+      const amountInt = parseInt(amount, 10);
+      // Step 2: Validate the promocode if provided
+      let finalAmount = amountInt;
+      if (promocode) {
+        const validPromocode = await Promocode.findOne({ code: promocode });
+        if(validPromocode){
+        if (numberOfPassengersInt>5) {
+          
+          // Apply a discount of 10 (you can adjust this logic as needed)
+          finalAmount = (amountInt * numberOfPassengersInt) - 30;
+          // Delete the promocode from the database
+          await Promocode.deleteOne({ code: promocode });
+        } else {
+          finalAmount = (amountInt * numberOfPassengersInt) - 10;
+          
+        }}
+        else{
+          finalAmount = amountInt*numberOfPassengersInt;
+        }
+      }
       else{
         finalAmount = amountInt*numberOfPassengersInt;
       }
-    }
-
-    // Step 3: Fetch all BoatOwners and compare their rounds
-    const boatOwners = await BoatOwner.find();
-    const minRound = Math.min(...boatOwners.map(owner => owner.round));
-    const candidates = boatOwners.filter(owner => owner.round === minRound);
-    const selectedBoatOwner = candidates[Math.floor(Math.random() * candidates.length)];
-     if (selectedBoatOwner.size>60){
-    selectedBoatOwner.round += 1;
-     }
-     else{
-      selectedBoatOwner.size += numberOfPassengersInt;
-     }
-    await selectedBoatOwner.save();
-
-    // Step 4: Create a new booking and associate the selected BoatOwner
-    const newBooking = new Booking({ ...req.body, amount: finalAmount, boatOwner: selectedBoatOwner._id });
-    const savedBooking = await newBooking.save();
-
-    // Step 5: Prepare the payment request body
-    const body = {
-      amount: finalAmount, // Adjusted amount
-      currency: "ETB",
-      email,
-      first_name: firstName,
-      last_name: lastName,
-      phone_number: phone,
-      tx_ref: "chewatatest-" + Date.now(),
-      callback_url: "https://webhook.site/077164d6-29cb-40df-ba29-8a00e59a7e60",
-      return_url: `https://tank-h15o.vercel.app//congratulation/${savedBooking._id}`,
-      customization: {
-        title: "Payment for ",
-        description: "I love online payments",
-      },
-      meta: {
-        hide_receipt: "true",
-      },
-    };
-
-    // Step 6: Send payment initialization request to Chapa
-    const options = {
-      method: "POST",
-      url: "https://api.chapa.co/v1/transaction/initialize",
-      headers: {
-        Authorization: "Bearer CHASECK_TEST-E2XnZBkD5AqYSXud9MWRnqHtRqgqZYPm", // Replace with your Chapa test key
-        "Content-Type": "application/json",
-      },
-      data: body,
-    };
-
-    let response;
-    try {
-      response = await axios(options);
+    console.log(finalAmount)
+      // Step 3: Fetch all BoatOwners and compare their rounds
+      const boatOwners = await BoatOwner.find();
+      const minRound = Math.min(...boatOwners.map(owner => owner.round));
+      const candidates = boatOwners.filter(owner => owner.round === minRound);
+      const selectedBoatOwner = candidates[Math.floor(Math.random() * candidates.length)];
+       if (selectedBoatOwner.size>60){
+      selectedBoatOwner.round += 1;
+       }
+       else{
+        selectedBoatOwner.size += numberOfPassengersInt;
+       }
+      await selectedBoatOwner.save();
+  
+      // Step 4: Create a new booking and associate the selected BoatOwner
+      const newBooking = new Booking({ ...req.body, amount: finalAmount, boatOwner: selectedBoatOwner._id });
+      const savedBooking = await newBooking.save();
+  
+      // Step 5: Prepare the payment request body
+      const body = {
+        amount: finalAmount, // Adjusted amount
+        currency: "ETB",
+        email,
+        first_name: firstName,
+        last_name: lastName,
+        phone_number: phone,
+        tx_ref: "chewatatest-" + Date.now(),
+        callback_url: "https://webhook.site/077164d6-29cb-40df-ba29-8a00e59a7e60",
+        return_url: `http://localhost:3000/congratulation/${savedBooking._id}`,
+        customization: {
+          title: "Payment for ",
+          description: "I love online payments",
+        },
+        meta: {
+          hide_receipt: "true",
+        },
+      };
+  
+      // Step 6: Send payment initialization request to Chapa
+      const options = {
+        method: "POST",
+        url: "https://api.chapa.co/v1/transaction/initialize",
+        headers: {
+          Authorization: "Bearer CHASECK_TEST-E2XnZBkD5AqYSXud9MWRnqHtRqgqZYPm", // Replace with your Chapa test key
+          "Content-Type": "application/json",
+        },
+        data: body,
+      };
+  
+      let response;
+      try {
+        response = await axios(options);
+      } catch (error) {
+        console.error('Error handling payment:', error.response?.data || error.message);
+        return res.status(500).json({ message: "Payment initialization failed" });
+      }
+  
+      const chapaResponse = response.data;
+  
+      // Step 7: Respond to the client with the payment link and booking
+      res.status(201).json({
+        message: "Booking created successfully, redirect to payment",
+        paymentUrl: chapaResponse.data.checkout_url,
+        booking: savedBooking,
+      });
+  
     } catch (error) {
-      console.error('Error handling payment:', error.response?.data || error.message);
-      return res.status(500).json({ message: "Payment initialization failed" });
+      console.log("Error handling payment:", error);
+      res.status(500).json({ error: error.message });
+    }} 
+    else if(req.body.paymentMethod === 'stripe'){
+    try {
+      //paypal for sell 
+     
+      // Step 1: Prepare the payment data
+      const { promocode, amount, email, firstName, lastName, phone , numberOfPassengers } = req.body;
+  const numberOfPassengersInt = parseInt(numberOfPassengers, 10);
+      const amountInt = parseInt(amount, 10);
+      // Step 2: Validate the promocode if provided
+      let finalAmount = amountInt;
+      if (promocode) {
+        const validPromocode = await Promocode.findOne({ code: promocode });
+        if(validPromocode){
+        if (numberOfPassengersInt>5) {
+          
+          // Apply a discount of 10 (you can adjust this logic as needed)
+          finalAmount = (amountInt * numberOfPassengersInt) - 30;
+          // Delete the promocode from the database
+          await Promocode.deleteOne({ code: promocode });
+        } else {
+          finalAmount = (amountInt * numberOfPassengersInt) - 10;
+          
+        }}
+        else{
+          finalAmount = amountInt*numberOfPassengersInt;
+        }
+      }
+      else{
+        finalAmount = amountInt*numberOfPassengersInt;
+      }
+    console.log(finalAmount)
+      // Step 3: Fetch all BoatOwners and compare their rounds
+      const boatOwners = await BoatOwner.find();
+      const minRound = Math.min(...boatOwners.map(owner => owner.round));
+      const candidates = boatOwners.filter(owner => owner.round === minRound);
+      const selectedBoatOwner = candidates[Math.floor(Math.random() * candidates.length)];
+       if (selectedBoatOwner.size>60){
+      selectedBoatOwner.round += 1;
+       }
+       else{
+        selectedBoatOwner.size += numberOfPassengersInt;
+       }
+      await selectedBoatOwner.save();
+  
+      // Step 4: Create a new booking and associate the selected BoatOwner
+      const newBooking = new Booking({ ...req.body, amount: finalAmount, boatOwner: selectedBoatOwner._id });
+      const savedBooking = await newBooking.save();
+  
+      // Step 5: Prepare the payment request body
+  
+  
+    
+   const session = await stripe.checkout.sessions.create({
+    line_items:[
+      {
+        price_data:{
+          currency:'usd',
+          product_data:{
+            name:"tankwa transportaion"
+          },
+          unit_amount:finalAmount
+        },
+        quantity: numberOfPassengers,
+      }
+    ],
+    mode:'payment',
+    success_url:`${process.env.BASE_URL}/congratulation/${savedBooking._id}`,
+    cancel_url:process.env.BASE_URL
+   })
+
+   res.json({ checkoutUrl: session.url });
+  
+    } catch (error) {
+      console.log("Error handling payment:", error);
+      res.status(500).json({ error: error.message });
+    }} 
+    else if(req.body.paymentMethod === 'paypal'){
+      try {
+        //paypal for sell 
+       
+        // Step 1: Prepare the payment data
+        const { promocode, amount, email, firstName, lastName, phone , numberOfPassengers , preferredDate , currency ,paymentMethod , typeOfTransport , destinationLocation , departureLocation} = req.body;
+       
+    const numberOfPassengersInt = parseInt(numberOfPassengers, 10);
+        const amountInt = parseInt(amount, 10);
+        // Step 2: Validate the promocode if provided
+        let finalAmount = amountInt;
+        if (promocode) {
+          const validPromocode = await Promocode.findOne({ code: promocode });
+          if(validPromocode){
+          if (numberOfPassengersInt>5) {
+            
+            // Apply a discount of 10 (you can adjust this logic as needed)
+            finalAmount = (amountInt * numberOfPassengersInt) - 30;
+            // Delete the promocode from the database
+            await Promocode.deleteOne({ code: promocode });
+          } else {
+            finalAmount = (amountInt * numberOfPassengersInt) - 10;
+            
+          }}
+          else{
+            finalAmount = amountInt*numberOfPassengersInt;
+          }
+        }
+        else{
+          finalAmount = amountInt*numberOfPassengersInt;
+        }
+      console.log(finalAmount)
+      const tempBooking = new TempBooking({
+        promocode,
+        amount: finalAmount,
+        email,
+        firstName,
+        lastName,
+        phone,
+        currency,
+        preferredDate,
+        paymentMethod,
+        typeOfTransport,
+        destinationLocation,
+        departureLocation,
+        numberOfPassengers: numberOfPassengersInt,
+    });
+    const savedTempBooking = await tempBooking.save();
+
+    // Step 4: Create PayPal order
+    const urlpaypal = await paypal.createOrder(finalAmount, savedTempBooking._id);
+
+    // Check if PayPal order creation was successful
+    if (!urlpaypal) {
+        throw new Error('Failed to create PayPal order');
     }
 
-    const chapaResponse = response.data;
+      return res.json({ url: urlpaypal });
+      
+    
+       
+    
+      } catch (error) {
+        console.log("Error handling payment:", error);
+        res.status(500).json({ error: error.message });
+      }
+    }
 
-    // Step 7: Respond to the client with the payment link and booking
-    res.status(201).json({
-      message: "Booking created successfully, redirect to payment",
-      paymentUrl: chapaResponse.data.checkout_url,
-      booking: savedBooking,
-    });
 
+  });
+
+app.post('/paypal/return', async (req, res) => {
+  try {
+      const { tempBookingId, message } = req.body;
+  console.log("tempBookingId"+tempBookingId)
+      // Step 1: Verify the payment with PayPal
+
+      if (message === 'Payment Approved') {
+          // Step 2: Retrieve the temporary booking data
+          const tempBooking = await TempBooking.findById(tempBookingId);
+          if (!tempBooking) {
+              throw new Error('Temporary booking data not found');
+          }
+
+          // Step 3: Fetch all BoatOwners and compare their rounds
+          const boatOwners = await BoatOwner.find();
+          const minRound = Math.min(...boatOwners.map(owner => owner.round));
+          const candidates = boatOwners.filter(owner => owner.round === minRound);
+          const selectedBoatOwner = candidates[Math.floor(Math.random() * candidates.length)];
+
+          if (selectedBoatOwner.size > 60) {
+              selectedBoatOwner.round += 1;
+          } else {
+              selectedBoatOwner.size += tempBooking.numberOfPassengers;
+          }
+          await selectedBoatOwner.save();
+
+          // Step 4: Create a new booking and associate the selected BoatOwner
+          const newBooking = new Booking({
+              ...tempBooking.toObject(),
+              boatOwner: selectedBoatOwner._id,
+          });
+          const savedBooking = await newBooking.save();
+
+          // Step 5: Delete the temporary booking data
+          await TempBooking.deleteOne({ _id: tempBookingId });
+
+          // Step 6: Respond to the client with the booking details
+          res.status(201).json({
+              message: "Booking created successfully",
+              booking: savedBooking,
+              return_url: `http://localhost:3000/congratulation/${savedBooking._id}`,
+          });
+      } else {
+          throw new Error('Payment not approved');
+      }
   } catch (error) {
-    console.log("Error handling payment:", error);
-    res.status(500).json({ error: error.message });
+      console.log("Error handling PayPal return:", error);
+      res.status(500).json({ error: error.message });
   }
 });
+
+
+
+
+
 // Signup Route
 
 router.post('/signup', async (req, res) => {
@@ -586,14 +798,24 @@ app.post('/upload', uploads.single('image'), async (req, res) => {
 });
 
 app.get('/destinations', async (req, res) => {
+  const { language } = req.query; // Get the language from query params
+
   try {
-      const destinations = await Destination.find();
-      res.json(destinations);
+    const destinations = await Destination.find();
+
+    // Map destinations to include only the requested language
+    const filteredDestinations = destinations.map((destination) => ({
+      _id: destination._id,
+      title: destination.titles[language] || 'No Title', // Fallback if language not found
+      description: destination.descriptions[language] || 'No Description', // Fallback if language not found
+      image: destination.image
+    }));
+
+    res.json(filteredDestinations);
   } catch (error) {
-      res.status(500).send(error);
+    res.status(500).send(error);
   }
 });
-
 
 
 // Get all l.destinations
