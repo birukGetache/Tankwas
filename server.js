@@ -23,7 +23,7 @@ require("dotenv").config();
 const router = express.Router();
 // Enable CORS
 const corsOptions = {
-  origin: ['https://tank-h15o.vercel.app', 'http://localhost:3000'], // Allow requests from both Vercel and localhost
+  origin: 'https://tankwas-3.onrender.com', // Allow requests from both Vercel and localhost
   methods: ['GET', 'POST', 'PUT', 'DELETE'], // Allowed methods
   allowedHeaders: ['Content-Type', 'Authorization'], // Allowed headers
 };
