@@ -23,7 +23,7 @@ const jwt = require('jsonwebtoken'); // For token generation
 const router = express.Router();
 // Enable CORS
 const corsOptions = {
-  origin: 'https://tank-h15o.vercel.app/', // Allow requests from both Vercel and localhost
+   origin: 'https://tank-h15o.vercel.app', // Allow requests from both Vercel and localhost
   methods: ['GET', 'POST', 'PUT', 'DELETE'], // Allowed methods
   allowedHeaders: ['Content-Type', 'Authorization'], // Allowed headers
 };
